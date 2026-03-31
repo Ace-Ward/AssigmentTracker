@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="MyAntApp" default="package" basedir=".">
+
+  <property name="app.name"    value="SampleApp"/>
+  <property name="app.version" value="1.0.0"/>
+  <property name="main.class"  value="Main"/>
+
+  <property name="src.dir"     value="src"/>
+  <property name="build.dir"   value="build/classes"/>
+  <property name="jar.dir"     value="build/jar"/>
+  <property name="dist.dir"    value="dist"/>
+  <property name="docs.dir"    value="build/docs"/>
+
+  <!-- Javadoc external API links. Uses the JDK running Ant; no hard-coded Java version. -->
+  <condition property="javadoc.api.url" value="https://docs.oracle.com/javase/8/docs/api/">
+    <equals arg1="${java.specification.version}" arg2="1.8"/>
+  </condition>
+  <condition property="javadoc.api.url" value="https://docs.oracle.com/en/java/javase/${java.specification.version}/docs/api/">
+    <not>
+      <equals arg1="${java.specification.version}" arg2="1.8"/>
+    </not>
+  </condition>
+
+  <macrodef name="generate-javadoc">
+    <attribute name="access-level" default="protected"/>
+    <attribute name="output-subdir"/>
+    <sequential>
+      <mkdir dir="${docs.dir}/@{output-subdir}"/>
+      <javadoc destdir="${docs.dir}/@{output-subdir}"
+               source="1.8"
+               encoding="UTF-8"
+               use="true"
+               author="true"
+               version="true"
+               failonerror="true"
+               access="@{access-level}">
+        <fileset dir="${src.dir}" includes="**/*.java"/>
+        <link href="${javadoc.api.url}"/>
+        <!-- Uncomment to resolve references in Javadoc comments to lib/ jars. -->
+        <!--
+            <classpath>
+            <pathelement path="${build.dir}"/>
+            <fileset dir="lib" includes="**/*.jar" erroronmissingdir="false"/>
+            </classpath>
+        -->
+        </javadoc>
+    </sequential>
+  </macrodef>
+
+  <condition property="isMac">
+    <os family="mac"/>
+  </condition>
+
+  <condition property="isLinux">
+    <and>
+      <os family="unix"/>
+      <not><os family="mac"/></not>
+    </and>
+  </condition>
+
+  <condition property="isWindows">
+    <os family="windows"/>
+  </condition>
+
+  <condition property="icon.file" value="icon.icns">
+    <isset property="isMac"/>
+  </condition>
+  <condition property="icon.file" value="icon.ico">
+    <and>
+      <isset property="isWindows"/>
+      <not><isset property="icon.file"/></not>
+    </and>
+  </condition>
+  <condition property="icon.file" value="icon.png">
+    <not><isset property="icon.file"/></not>
+  </condition>
+
+  <target name="preflight" description="Print toolchain/OS info">
+    <echo message="Java: ${java.runtime.name} ${java.runtime.version}"/>
+    <echo message="Java Vendor: ${java.vendor}"/>
+    <echo message="Java Home: ${java.home}"/>
+    <echo message="Java Spec Version: ${java.specification.version}"/>
+    <echo message="OS: ${os.name} ${os.version} (${os.arch})"/>
+  </target>
+
+  <target name="clean" description="Remove all build and distribution files">
+    <delete dir="build"/>
+    <delete dir="${dist.dir}"/>
+  </target>
+
+  <target name="compile" depends="preflight" description="Compile Java source code">
+    <mkdir dir="${build.dir}"/>
+    <javac srcdir="${src.dir}"
+           destdir="${build.dir}"
+           includeantruntime="false"
+           debug="true"/>
+  </target>
+
+  <target name="jar" depends="compile" description="Package classes into an executable JAR">
+    <mkdir dir="${jar.dir}"/>
+    <jar destfile="${jar.dir}/${app.name}.jar" basedir="${build.dir}">
+      <manifest>
+        <attribute name="Main-Class" value="${main.class}"/>
+        <attribute name="Implementation-Version" value="${app.version}"/>
+      </manifest>
+    </jar>
+  </target>
+
+  <target name="run" depends="jar" description="Run the application from the JAR for testing">
+    <java jar="${jar.dir}/${app.name}.jar" fork="true"/>
+  </target>
+
+  <target name="javadoc" depends="preflight" description="Generate standard API documentation">
+    <generate-javadoc access-level="protected" output-subdir="api"/>
+  </target>
+
+  <target name="javadoc-internal" depends="preflight" description="Generate internal documentation (includes private members)">
+    <generate-javadoc access-level="private" output-subdir="internal"/>
+  </target>
+
+  <target name="javadoc-all" depends="javadoc, javadoc-internal" description="Generate both standard and internal documentation sets"/>
+
+  <target name="package" description="Build the native installer for the current OS (DMG, DEB, or MSI)">
+    <antcall target="dmg"/>
+    <antcall target="debian"/>
+    <antcall target="windows"/>
+  </target>
+
+  <target name="dmg" depends="jar" if="isMac" description="[Mac Only] Builds the .dmg installer">
+    <mkdir dir="${dist.dir}"/>
+    <exec executable="jpackage" failonerror="true">
+      <arg value="--input"/><arg value="${jar.dir}"/>
+      <arg value="--dest"/><arg value="${dist.dir}"/>
+      <arg value="--name"/><arg value="${app.name}"/>
+      <arg value="--main-jar"/><arg value="${app.name}.jar"/>
+      <arg value="--main-class"/><arg value="${main.class}"/>
+      <arg value="--type"/><arg value="dmg"/>
+      <arg value="--icon"/><arg value="${icon.file}"/>
+      <arg value="--app-version"/><arg value="${app.version}"/>
+      <arg value="--mac-package-name"/><arg value="${app.name}"/>
+      <arg value="--mac-package-identifier"/><arg value="com.example.${app.name}"/>
+    </exec>
+
+    <move todir="${dist.dir}">
+      <fileset dir="${dist.dir}">
+        <include name="${app.name}*.dmg"/>
+        <exclude name="${app.name}-Installer.dmg"/>
+      </fileset>
+      <mapper type="merge" to="${app.name}-Installer.dmg"/>
+    </move>
+
+    <echo message="Success! MacOS Installer: ${dist.dir}/${app.name}-Installer.dmg"/>
+  </target>
+
+  <target name="debian" depends="jar" if="isLinux" description="[Linux Only] Builds the .deb package">
+    <mkdir dir="${dist.dir}"/>
+    <exec executable="jpackage" failonerror="true">
+      <arg value="--input"/><arg value="${jar.dir}"/>
+      <arg value="--dest"/><arg value="${dist.dir}"/>
+      <arg value="--name"/><arg value="${app.name}"/>
+      <arg value="--main-jar"/><arg value="${app.name}.jar"/>
+      <arg value="--main-class"/><arg value="${main.class}"/>
+      <arg value="--type"/><arg value="deb"/>
+      <arg value="--icon"/><arg value="${icon.file}"/>
+      <arg value="--app-version"/><arg value="${app.version}"/>
+      <arg value="--linux-shortcut"/>
+    </exec>
+    <move todir="${dist.dir}">
+      <fileset dir="${dist.dir}">
+        <include name="${app.name}*.deb"/>
+        <exclude name="${app.name}-Linux.deb"/>
+      </fileset>
+      <mapper type="merge" to="${app.name}-Linux.deb"/>
+    </move>
+    <echo message="Success! Debian Package: ${dist.dir}/${app.name}-Linux.deb"/>
+  </target>
+
+  <target name="windows" depends="jar" if="isWindows" description="[Windows Only] Builds the .msi installer">
+    <mkdir dir="${dist.dir}"/>
+    <exec executable="jpackage" failonerror="true">
+      <arg value="--input"/><arg value="${jar.dir}"/>
+      <arg value="--dest"/><arg value="${dist.dir}"/>
+      <arg value="--name"/><arg value="${app.name}"/>
+      <arg value="--main-jar"/><arg value="${app.name}.jar"/>
+      <arg value="--main-class"/><arg value="${main.class}"/>
+      <arg value="--type"/><arg value="msi"/>
+      <arg value="--icon"/><arg value="${icon.file}"/>
+      <arg value="--app-version"/><arg value="${app.version}"/>
+      <arg value="--win-dir-chooser"/>
+      <arg value="--win-shortcut"/>
+      <arg value="--win-menu"/>
+    </exec>
+    <move todir="${dist.dir}">
+      <fileset dir="${dist.dir}">
+        <include name="${app.name}*.msi"/>
+        <exclude name="${app.name}-Windows.msi"/>
+      </fileset>
+      <mapper type="merge" to="${app.name}-Windows.msi"/>
+    </move>
+    <echo message="Success! Windows Installer: ${dist.dir}/${app.name}-Windows.msi"/>
+  </target>
+
+</project>

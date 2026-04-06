@@ -5,8 +5,9 @@ import java.awt.*;
 
 /**
  * Main class with main method invoked on app start.
- * @version 1.0.0
- * @author Dr. Jody Paul
+ * @version 1.0.3
+ * @author Dr. Jody Paul 
+ * @author Ayslynn Wardall, Kenneth Pyron, Amadou Seck 
  */
 public class Main {
     /** Private constructor to prevent instantiation of entry point class. */

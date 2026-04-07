@@ -6,10 +6,14 @@
   <property name="main.class"  value="Main"/>
 
   <property name="src.dir"     value="src"/>
+  <property name="test.src"    value="test"/>
   <property name="build.dir"   value="build/classes"/>
+  <property name="test.build"  value="build/test-classes"/>
   <property name="jar.dir"     value="build/jar"/>
   <property name="dist.dir"    value="dist"/>
   <property name="docs.dir"    value="build/docs"/>
+  <property name="junit.jar"   value="lib/junit-platform-console-standalone.jar"/>
+  <property name="junit.url"   value="https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.11.4/junit-platform-console-standalone-1.11.4.jar"/>
 
   <!-- Javadoc external API links. Uses the JDK running Ant; no hard-coded Java version. -->
   <condition property="javadoc.api.url" value="https://docs.oracle.com/javase/8/docs/api/">
@@ -198,6 +202,34 @@
       <mapper type="merge" to="${app.name}-Windows.msi"/>
     </move>
     <echo message="Success! Windows Installer: ${dist.dir}/${app.name}-Windows.msi"/>
+  </target>
+
+  <!-- ======================== Testing ======================== -->
+
+  <target name="download-junit" description="Download JUnit JAR if not present">
+    <mkdir dir="lib"/>
+    <get src="${junit.url}" dest="${junit.jar}" skipexisting="true"/>
+  </target>
+
+  <target name="test-compile" depends="compile, download-junit" description="Compile test sources">
+    <mkdir dir="${test.build}"/>
+    <javac srcdir="${test.src}"
+           destdir="${test.build}"
+           includeantruntime="false"
+           debug="true">
+      <classpath>
+        <pathelement path="${build.dir}"/>
+        <pathelement path="${junit.jar}"/>
+      </classpath>
+    </javac>
+  </target>
+
+  <target name="test" depends="test-compile" description="Run JUnit tests">
+    <java jar="${junit.jar}" fork="true" failonerror="true">
+      <arg value="execute"/>
+      <arg value="--class-path"/><arg value="${build.dir}:${test.build}"/>
+      <arg value="--scan-class-path=${test.build}"/>
+    </java>
   </target>
 
 </project>

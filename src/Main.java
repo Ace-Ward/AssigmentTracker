@@ -2,6 +2,8 @@ import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 /**
  * Main class with main method invoked on app start.
@@ -23,12 +25,21 @@ public class Main {
 
     private static void createAndShowGUI() {
         JFrame frame = new JFrame("Assignment Tracker");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         frame.setSize(750, 550);
         frame.setLocationRelativeTo(null);
 
         // --- Data models ---
         DefaultListModel<Subject> subjectListModel = new DefaultListModel<>();
+        DataStore.load(subjectListModel);
+
+        frame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                DataStore.save(subjectListModel);
+                frame.dispose();
+            }
+        });
         DefaultTableModel emptyTableModel = new DefaultTableModel(
                 new String[]{"Assignment", "Due Date", "Done"}, 0) {
             @Override

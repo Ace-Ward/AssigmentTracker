@@ -102,6 +102,11 @@ public class Main {
         sidebarPanel.add(sidebarScroll, BorderLayout.CENTER);
         sidebarPanel.add(sidebarButtonPanel, BorderLayout.SOUTH);
 
+        // --- Calendar panel ---
+        // Built up here (before the action listeners below) so those listeners
+        // can capture it and call refresh() when assignments change.
+        CalendarPanel calendarPanel = new CalendarPanel(subjectListModel);
+
         // --- Selection listener: swap table model, toggle controls ---
         subjectList.addListSelectionListener(e -> {
             if (e.getValueIsAdjusting()) return;
@@ -129,6 +134,7 @@ public class Main {
                 nameField.setText("");
                 dateField.setText("");
                 nameField.requestFocus();
+                calendarPanel.refresh(); // keep due-date markers in sync
             }
         });
 
@@ -139,6 +145,7 @@ public class Main {
             int row = table.getSelectedRow();
             if (row >= 0) {
                 selected.getTableModel().removeRow(row);
+                calendarPanel.refresh(); // keep due-date markers in sync
             }
         });
 
@@ -189,6 +196,7 @@ public class Main {
             int index = subjectList.getSelectedIndex();
             selected.setName(name);
             subjectListModel.set(index, selected);
+            calendarPanel.refresh(); // tooltip labels include the subject name
         });
 
         // --- Delete ---
@@ -204,15 +212,28 @@ public class Main {
             if (!subjectListModel.isEmpty()) {
                 subjectList.setSelectedIndex(Math.max(0, index - 1));
             }
+            calendarPanel.refresh(); // deleted subject's assignments come off the calendar
             // When the list is empty, removing the last element clears the JList
             // selection automatically, which fires the ListSelectionListener above.
             // That listener resets the table and disables all controls.
         });
 
         // --- Assemble frame ---
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.addTab("Assignments", new JScrollPane(table));
+        tabs.addTab("Calendar", calendarPanel);
+
+        // Redraw the calendar whenever the user switches to its tab so any
+        // assignments added/removed on the Assignments tab show up.
+        tabs.addChangeListener(e -> {
+            if (tabs.getSelectedComponent() == calendarPanel) {
+                calendarPanel.refresh();
+            }
+        });
+
         frame.setLayout(new BorderLayout());
         frame.add(sidebarPanel, BorderLayout.WEST);
-        frame.add(new JScrollPane(table), BorderLayout.CENTER);
+        frame.add(tabs, BorderLayout.CENTER);
         frame.add(inputPanel, BorderLayout.SOUTH);
         frame.setVisible(true);
     }

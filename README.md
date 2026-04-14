@@ -27,7 +27,7 @@ To download the application installer for your operating system:
   - Drag the application icon into your Applications folder
   - Launch the app from the Applications folder or Launchpad
 
-6.For Windows (.msi):
+6. For Windows (.msi):
   - Double-click the .msi file to begin installation
   - Follow the on-screen setup instructions
   - After installation, find the app in your Start Menu or on your Desktop

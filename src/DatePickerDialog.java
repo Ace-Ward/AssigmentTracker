@@ -9,6 +9,9 @@ import java.util.Locale;
 /**
  * A small modal calendar popup that lets the user click a date to select it.
  * Returns the chosen date as a LocalDate, or null if the dialog was cancelled.
+ *
+ * Colors come from the current Look & Feel via UIManager so the popup matches
+ * FlatLaf's theme.
  */
 public class DatePickerDialog extends JDialog {
 
@@ -64,17 +67,15 @@ public class DatePickerDialog extends JDialog {
     // -----------------------------------------------------------------------
 
     private JPanel buildHeader() {
-        ThemeManager tm = ThemeManager.get();
         JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(tm.calHeaderBg());
+        header.setOpaque(false);
         header.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
 
         JButton prev = makeNavBtn("\u25C0");
         JButton next = makeNavBtn("\u25B6");
 
         monthYearLabel = new JLabel("", SwingConstants.CENTER);
-        monthYearLabel.setForeground(tm.calHeaderFg());
-        monthYearLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        monthYearLabel.setFont(monthYearLabel.getFont().deriveFont(Font.BOLD, 14f));
 
         prev.addActionListener(e -> {
             displayedMonth = displayedMonth.minusMonths(1);
@@ -92,13 +93,9 @@ public class DatePickerDialog extends JDialog {
     }
 
     private JButton makeNavBtn(String symbol) {
-        ThemeManager tm = ThemeManager.get();
         JButton btn = new JButton(symbol);
-        btn.setForeground(tm.calHeaderFg());
-        btn.setBackground(tm.calHeaderBg());
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
-        btn.setFont(new Font("SansSerif", Font.BOLD, 13));
+        btn.putClientProperty("JButton.buttonType", "toolBarButton");
+        btn.setFont(btn.getFont().deriveFont(Font.BOLD, 13f));
         return btn;
     }
 
@@ -107,24 +104,27 @@ public class DatePickerDialog extends JDialog {
     // -----------------------------------------------------------------------
 
     private void rebuildGrid(LocalDate highlighted) {
-        ThemeManager tm = ThemeManager.get();
         String monthName = displayedMonth.getMonth()
                 .getDisplayName(TextStyle.FULL, Locale.getDefault());
         monthYearLabel.setText(monthName + " " + displayedMonth.getYear());
 
+        Color gridLine   = UIManager.getColor("Component.borderColor");
+        Color dayNameBg  = UIManager.getColor("TableHeader.background");
+        Color dayNameFg  = UIManager.getColor("TableHeader.foreground");
+
         remove(gridPanel);
         gridPanel = new JPanel(new GridLayout(0, 7, 1, 1));
-        gridPanel.setBackground(tm.calGridLine());
-        gridPanel.setBorder(new LineBorder(tm.calGridLine()));
+        gridPanel.setBackground(gridLine);
+        gridPanel.setBorder(new LineBorder(gridLine));
 
         // Day-name row
         String[] dayNames = {"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"};
         for (String n : dayNames) {
             JLabel lbl = new JLabel(n, SwingConstants.CENTER);
             lbl.setOpaque(true);
-            lbl.setBackground(tm.calDayNameBg());
-            lbl.setForeground(tm.calDayNameFg());
-            lbl.setFont(new Font("SansSerif", Font.BOLD, 11));
+            lbl.setBackground(dayNameBg);
+            lbl.setForeground(dayNameFg);
+            lbl.setFont(lbl.getFont().deriveFont(Font.BOLD, 11f));
             lbl.setBorder(BorderFactory.createEmptyBorder(4, 0, 4, 0));
             gridPanel.add(lbl);
         }
@@ -145,9 +145,16 @@ public class DatePickerDialog extends JDialog {
     }
 
     private JPanel buildCell(LocalDate date, LocalDate today, LocalDate highlighted) {
-        ThemeManager tm = ThemeManager.get();
-        boolean isThisMonth  = YearMonth.from(date).equals(displayedMonth);
-        boolean isToday      = date.equals(today);
+        Color thisMonthBg  = UIManager.getColor("Table.background");
+        Color otherMonthBg = UIManager.getColor("Panel.background");
+        Color todayBg      = UIManager.getColor("Table.selectionBackground");
+        Color todayFg      = UIManager.getColor("Table.selectionForeground");
+        Color normalFg     = UIManager.getColor("Label.foreground");
+        Color mutedFg      = UIManager.getColor("Label.disabledForeground");
+        Color hoverBorder  = UIManager.getColor("Component.focusColor");
+
+        boolean isThisMonth   = YearMonth.from(date).equals(displayedMonth);
+        boolean isToday       = date.equals(today);
         boolean isHighlighted = date.equals(highlighted);
 
         JPanel cell = new JPanel(new BorderLayout());
@@ -155,23 +162,21 @@ public class DatePickerDialog extends JDialog {
         cell.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         Color bg;
-        if (isHighlighted) {
-            bg = tm.calHoverBorder();
-        } else if (isToday) {
-            bg = tm.calTodayBg();
+        if (isHighlighted || isToday) {
+            bg = todayBg;
         } else if (isThisMonth) {
-            bg = tm.calThisMonthBg();
+            bg = thisMonthBg;
         } else {
-            bg = tm.calOtherMonthBg();
+            bg = otherMonthBg;
         }
         cell.setBackground(bg);
         cell.setBorder(BorderFactory.createEmptyBorder(3, 4, 3, 4));
 
         JLabel lbl = new JLabel(String.valueOf(date.getDayOfMonth()), SwingConstants.CENTER);
-        lbl.setFont(new Font("SansSerif", isToday ? Font.BOLD : Font.PLAIN, 12));
-        Color fg = isHighlighted ? Color.WHITE
-                 : isThisMonth   ? tm.calDateFg()
-                 :                 tm.calOtherMonthFg();
+        lbl.setFont(lbl.getFont().deriveFont(isToday ? Font.BOLD : Font.PLAIN, 12f));
+        Color fg = (isHighlighted || isToday) ? todayFg
+                 : isThisMonth                ? normalFg
+                 :                              mutedFg;
         lbl.setForeground(fg);
         cell.add(lbl, BorderLayout.CENTER);
 
@@ -184,7 +189,7 @@ public class DatePickerDialog extends JDialog {
             }
             @Override
             public void mouseEntered(MouseEvent e) {
-                cell.setBorder(new LineBorder(tm.calHoverBorder(), 2));
+                cell.setBorder(new LineBorder(hoverBorder, 2));
             }
             @Override
             public void mouseExited(MouseEvent e) {

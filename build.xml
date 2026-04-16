@@ -14,6 +14,9 @@
   <property name="docs.dir"    value="build/docs"/>
   <property name="junit.jar"   value="lib/junit-platform-console-standalone.jar"/>
   <property name="junit.url"   value="https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.11.4/junit-platform-console-standalone-1.11.4.jar"/>
+  <!-- FlatLaf: modern Look & Feel for Swing. Auto-downloaded like junit.jar. -->
+  <property name="flatlaf.jar" value="lib/flatlaf-3.5.4.jar"/>
+  <property name="flatlaf.url" value="https://repo1.maven.org/maven2/com/formdev/flatlaf/3.5.4/flatlaf-3.5.4.jar"/>
 
   <!-- Javadoc external API links. Uses the JDK running Ant; no hard-coded Java version. -->
   <condition property="javadoc.api.url" value="https://docs.oracle.com/javase/8/docs/api/">
@@ -92,14 +95,25 @@
     <delete dir="${dist.dir}"/>
   </target>
 
-  <target name="compile" depends="preflight" description="Compile Java source code">
+  <target name="download-flatlaf" description="Download FlatLaf JAR if not present">
+    <mkdir dir="lib"/>
+    <get src="${flatlaf.url}" dest="${flatlaf.jar}" skipexisting="true"/>
+  </target>
+
+  <target name="compile" depends="preflight, download-flatlaf" description="Compile Java source code">
     <mkdir dir="${build.dir}"/>
     <javac srcdir="${src.dir}"
            destdir="${build.dir}"
            includeantruntime="false"
-           debug="true"/>
+           debug="true">
+      <classpath>
+        <pathelement path="${flatlaf.jar}"/>
+      </classpath>
+    </javac>
   </target>
 
+  <!-- Bundle FlatLaf classes into the app JAR so `ant run` and jpackage both
+       work without needing a separate classpath entry. -->
   <target name="jar" depends="compile" description="Package classes into an executable JAR">
     <mkdir dir="${jar.dir}"/>
     <jar destfile="${jar.dir}/${app.name}.jar" basedir="${build.dir}">
@@ -107,6 +121,7 @@
         <attribute name="Main-Class" value="${main.class}"/>
         <attribute name="Implementation-Version" value="${app.version}"/>
       </manifest>
+      <zipgroupfileset file="${flatlaf.jar}"/>
     </jar>
   </target>
 

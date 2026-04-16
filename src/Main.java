@@ -1,3 +1,7 @@
+import com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.FlatLaf;
+import com.formdev.flatlaf.FlatLightLaf;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -21,6 +25,14 @@ public class Main {
      * @param args ignored
      */
     public static void main(String[] args) {
+        // Install FlatLaf before any Swing component is created so it picks up
+        // the modern Look & Feel defaults (fonts, borders, scrollbars, etc.).
+        // Choice of dark vs. light follows the saved ThemeManager preference.
+        if (ThemeManager.get().isDark()) {
+            FlatDarkLaf.setup();
+        } else {
+            FlatLightLaf.setup();
+        }
         SwingUtilities.invokeLater(Main::createAndShowGUI);
     }
 
@@ -72,7 +84,9 @@ public class Main {
 
         JFrame frame = new JFrame("Assignment Tracker");
         frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        frame.setSize(750, 550);
+        // Default size sized so the full input row (assignment, due date,
+        // buttons, and dark-mode toggle) fits without wrapping.
+        frame.setSize(1100, 650);
         frame.setLocationRelativeTo(null);
 
         // --- Data models ---
@@ -95,12 +109,10 @@ public class Main {
         };
 
         // --- Center: assignment table ---
+        // Colors come from the active FlatLaf theme via UIManager; only
+        // layout/size tweaks are set here.
         JTable table = new JTable(emptyTableModel);
         table.setRowHeight(24);
-        table.setBackground(theme.contentBg());
-        table.setForeground(theme.contentFg());
-        table.getTableHeader().setBackground(theme.contentBg());
-        table.getTableHeader().setForeground(theme.contentFg());
 
         // --- South: input panel (disabled until a class is selected) ---
         DateTimeFormatter displayFmt = DateTimeFormatter.ofPattern("MM/dd/yyyy");
@@ -153,30 +165,35 @@ public class Main {
         // --- West: sidebar ---
         JList<Subject> subjectList = new JList<>(subjectListModel);
         subjectList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        subjectList.setBackground(theme.sidebarBg());
-        subjectList.setForeground(theme.sidebarFg());
-        subjectList.setSelectionBackground(theme.sidebarSelBg());
-        subjectList.setSelectionForeground(theme.sidebarSelFg());
         subjectList.setFont(subjectList.getFont().deriveFont(13f));
 
-        JButton newClassButton = new JButton("New Class");
-        JButton renameButton = new JButton("Rename");
-        JButton deleteButton = new JButton("Delete");
+        // Sidebar action buttons are icon-only (monochrome Unicode glyphs so
+        // FlatLaf handles the color automatically). Tooltips carry the
+        // full label for accessibility.
+        JButton newClassButton = new JButton("+");
+        newClassButton.setToolTipText("New class");
+        JButton renameButton = new JButton("\u270E"); // pencil
+        renameButton.setToolTipText("Rename class");
+        JButton deleteButton = new JButton("\u2715"); // heavy X
+        deleteButton.setToolTipText("Delete class");
+        // Bump the glyph size so the icons read clearly on smaller buttons.
+        Font iconFont = newClassButton.getFont().deriveFont(18f);
+        newClassButton.setFont(iconFont);
+        renameButton.setFont(iconFont);
+        deleteButton.setFont(iconFont);
         renameButton.setEnabled(false);
         deleteButton.setEnabled(false);
 
-        JPanel sidebarButtonPanel = new JPanel(new GridLayout(3, 1, 0, 2));
+        // Horizontal row of equally-sized icon buttons.
+        JPanel sidebarButtonPanel = new JPanel(new GridLayout(1, 3, 4, 0));
         sidebarButtonPanel.add(newClassButton);
         sidebarButtonPanel.add(renameButton);
         sidebarButtonPanel.add(deleteButton);
-        sidebarButtonPanel.setBackground(theme.sidebarBg());
 
         JScrollPane sidebarScroll = new JScrollPane(subjectList);
-        sidebarScroll.getViewport().setBackground(theme.sidebarBg());
 
-        JPanel sidebarPanel = new JPanel(new BorderLayout(0, 4));
-        sidebarPanel.setPreferredSize(new Dimension(150, 0));
-        sidebarPanel.setBackground(theme.sidebarBg());
+        JPanel sidebarPanel = new JPanel(new BorderLayout(0, 6));
+        sidebarPanel.setPreferredSize(new Dimension(210, 0));
         sidebarPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
         sidebarPanel.add(sidebarScroll, BorderLayout.CENTER);
         sidebarPanel.add(sidebarButtonPanel, BorderLayout.SOUTH);
@@ -186,20 +203,18 @@ public class Main {
         // can capture it and call refresh() when assignments change.
         CalendarPanel calendarPanel = new CalendarPanel(subjectListModel);
 
-        // Theme listener registered later (after tableScroll/tabs are in scope)
-
-        // Apply initial theme to input panel and frame background
-        inputPanel.setBackground(theme.contentBg());
-        nameField.setBackground(theme.inputBg());
-        nameField.setForeground(theme.inputFg());
-        dateField.setBackground(theme.inputBg());
-        dateField.setForeground(theme.inputFg());
-        frame.getContentPane().setBackground(theme.contentBg());
-        for (Component c : inputPanel.getComponents()) {
-            if (c instanceof JLabel) {
-                ((JLabel) c).setForeground(theme.contentFg());
+        // Swap the FlatLaf Look & Feel when the user toggles dark/light mode.
+        // Registered FIRST so it runs before the color-override listener below
+        // (which sets specific component colors on top of the LAF defaults).
+        theme.addListener(() -> {
+            try {
+                UIManager.setLookAndFeel(theme.isDark()
+                        ? new FlatDarkLaf() : new FlatLightLaf());
+                FlatLaf.updateUI(); // repaint every open window with the new LAF
+            } catch (UnsupportedLookAndFeelException ex) {
+                System.err.println("Could not switch LAF: " + ex.getMessage());
             }
-        }
+        });
 
         // --- Dark mode toggle action ---
         darkModeToggle.addActionListener(e -> theme.toggle());
@@ -319,58 +334,17 @@ public class Main {
 
         // --- Assemble frame ---
         JScrollPane tableScroll = new JScrollPane(table);
-        tableScroll.getViewport().setBackground(theme.contentBg());
-        tableScroll.setBackground(theme.contentBg());
 
         JTabbedPane tabs = new JTabbedPane();
-        tabs.setBackground(theme.contentBg());
-        tabs.setForeground(theme.contentFg());
         tabs.addTab("Assignments", tableScroll);
         tabs.addTab("Calendar", calendarPanel);
 
-        // --- Theme change listener: recolor all non-calendar components ---
+        // Component colors are handled by the FlatLaf LAF swap registered
+        // above. This listener only updates text that reflects the current
+        // mode (the sun/moon icon and the label next to it).
         theme.addListener(() -> {
-            // Table
-            table.setBackground(theme.contentBg());
-            table.setForeground(theme.contentFg());
-            table.getTableHeader().setBackground(theme.contentBg());
-            table.getTableHeader().setForeground(theme.contentFg());
-            tableScroll.getViewport().setBackground(theme.contentBg());
-            tableScroll.setBackground(theme.contentBg());
-
-            // Tabs
-            tabs.setBackground(theme.contentBg());
-            tabs.setForeground(theme.contentFg());
-
-            // Sidebar
-            subjectList.setBackground(theme.sidebarBg());
-            subjectList.setForeground(theme.sidebarFg());
-            subjectList.setSelectionBackground(theme.sidebarSelBg());
-            subjectList.setSelectionForeground(theme.sidebarSelFg());
-            sidebarButtonPanel.setBackground(theme.sidebarBg());
-            sidebarScroll.getViewport().setBackground(theme.sidebarBg());
-            sidebarPanel.setBackground(theme.sidebarBg());
-
-            // Input panel
-            inputPanel.setBackground(theme.contentBg());
-            nameField.setBackground(theme.inputBg());
-            nameField.setForeground(theme.inputFg());
-            dateField.setBackground(theme.inputBg());
-            dateField.setForeground(theme.inputFg());
-
-            // Toggle button label
             darkModeToggle.setText(theme.isDark() ? "☀" : "☾");
             darkModeLabel.setText(theme.isDark() ? "Light Mode" : "Dark Mode");
-
-            // Labels in input panel
-            for (Component c : inputPanel.getComponents()) {
-                if (c instanceof JLabel) {
-                    ((JLabel) c).setForeground(theme.contentFg());
-                }
-            }
-
-            frame.getContentPane().setBackground(theme.contentBg());
-            frame.repaint();
         });
 
         // Redraw the calendar whenever the user switches to its tab so any

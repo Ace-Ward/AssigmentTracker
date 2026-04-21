@@ -3,6 +3,7 @@ import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
@@ -26,13 +27,22 @@ public class Main {
      * @param args ignored
      */
     public static void main(String[] args) {
-        // Install FlatLaf before any Swing component is created so it picks up
-        // the modern Look & Feel defaults (fonts, borders, scrollbars, etc.).
-        // Choice of dark vs. light follows the saved ThemeManager preference.
+        UIManager.put("@accentColor", new Color(99, 102, 241));
         if (ThemeManager.get().isDark()) {
             FlatDarkLaf.setup();
         } else {
             FlatLightLaf.setup();
+        }
+        UIManager.put("Button.arc", 8);
+        UIManager.put("TextComponent.arc", 6);
+        UIManager.put("Component.arc", 6);
+        Font tnr = new Font("Times New Roman", Font.PLAIN, 15);
+        for (String key : new String[]{
+                "Button.font", "Label.font", "List.font", "Table.font",
+                "TableHeader.font", "TextField.font", "TextArea.font",
+                "ComboBox.font", "TabbedPane.font", "ToggleButton.font",
+                "TitledBorder.font", "ToolTip.font"}) {
+            UIManager.put(key, tnr);
         }
         SwingUtilities.invokeLater(Main::createAndShowGUI);
     }
@@ -45,26 +55,21 @@ public class Main {
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         int arc = size / 5;
-        // Body
         g.setColor(Color.WHITE);
         g.fillRoundRect(0, 2, size, size - 2, arc, arc);
-        // Header bar
-        g.setColor(new Color(80, 120, 200));
+        g.setColor(new Color(99, 102, 241));
         g.fillRoundRect(0, 2, size, size / 3, arc, arc);
-        g.fillRect(0, size / 3 - arc / 2, size, arc / 2 + 1); // square off bottom of header
-        // Border
+        g.fillRect(0, size / 3 - arc / 2, size, arc / 2 + 1);
         g.setColor(new Color(100, 100, 100));
         g.setStroke(new BasicStroke(1f));
         g.drawRoundRect(0, 2, size - 1, size - 3, arc, arc);
-        // Ring pegs at top
         g.setColor(new Color(60, 60, 60));
         int pegY = 0;
         int pegW = Math.max(2, size / 8);
         int pegH = size / 4;
         g.fillRoundRect(size / 4 - pegW / 2, pegY, pegW, pegH, 2, 2);
         g.fillRoundRect(3 * size / 4 - pegW / 2, pegY, pegW, pegH, 2, 2);
-        // Grid dots (3x2)
-        g.setColor(new Color(80, 120, 200));
+        g.setColor(new Color(99, 102, 241));
         int dotSize = Math.max(1, size / 10);
         int gridTop = size / 3 + size / 8;
         int rowH = (size - gridTop - 2) / 2;
@@ -85,9 +90,7 @@ public class Main {
 
         JFrame frame = new JFrame("Assignment Tracker");
         frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        // Default size sized so the full input row (assignment, due date,
-        // buttons, and dark-mode toggle) fits without wrapping.
-        frame.setSize(1100, 650);
+        frame.setSize(1140, 680);
         frame.setLocationRelativeTo(null);
 
         // --- Data models ---
@@ -101,6 +104,7 @@ public class Main {
                 frame.dispose();
             }
         });
+
         DefaultTableModel emptyTableModel = new DefaultTableModel(
                 new String[]{"Assignment", "Due Date", "Done", "Notes"}, 0) {
             @Override
@@ -110,10 +114,18 @@ public class Main {
         };
 
         // --- Center: assignment table ---
-        // Colors come from the active FlatLaf theme via UIManager; only
-        // layout/size tweaks are set here.
         JTable table = new JTable(emptyTableModel);
-        table.setRowHeight(24);
+        table.setRowHeight(30);
+        table.setShowVerticalLines(false);
+        table.setIntercellSpacing(new Dimension(0, 1));
+        table.getTableHeader().setFont(
+            table.getTableHeader().getFont().deriveFont(Font.BOLD, 12f));
+        table.getTableHeader().setReorderingAllowed(false);
+
+        DefaultTableCellRenderer leftRenderer = new DefaultTableCellRenderer();
+        leftRenderer.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
+        table.getColumnModel().getColumn(0).setCellRenderer(leftRenderer);
+        table.getColumnModel().getColumn(1).setCellRenderer(leftRenderer);
 
         TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(emptyTableModel);
         table.setRowSorter(sorter);
@@ -124,14 +136,16 @@ public class Main {
 
         NotesPanel notesPanel = new NotesPanel(subjectListModel, table);
 
+        // --- Filter bar ---
         JTextField filterField = new JTextField(18);
-        filterField.setToolTipText("Search by assignment name or notes content");
+        filterField.setToolTipText("Search assignments or notes");
+        filterField.putClientProperty("JTextField.placeholderText", "Search...");
         String[] filterOptions = {"All", "Has Notes", "No Notes", "Done", "Not Done"};
         JComboBox<String> filterCombo = new JComboBox<>(filterOptions);
         JButton clearFilterButton = new JButton("Clear");
+        clearFilterButton.putClientProperty("JButton.buttonType", "roundRect");
 
-        JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
-        filterBar.add(new JLabel("Filter:"));
+        JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 6));
         filterBar.add(filterField);
         filterBar.add(filterCombo);
         filterBar.add(clearFilterButton);
@@ -175,17 +189,18 @@ public class Main {
             filterCombo.setSelectedIndex(0);
         });
 
-        // --- South: input panel (disabled until a class is selected) ---
+        // --- South: input panel ---
         DateTimeFormatter displayFmt = DateTimeFormatter.ofPattern("MM/dd/yyyy");
-        // dateField shows MM/dd/yyyy to the user but is read-only; picker button sets it
         JTextField nameField = new JTextField(20);
+        nameField.putClientProperty("JTextField.placeholderText", "Assignment name");
         JTextField dateField = new JTextField(10);
         dateField.setEditable(false);
-        dateField.setToolTipText("Click 📅 to pick a date");
+        dateField.setToolTipText("Click the calendar button to pick a date");
         JButton datePickerButton = new JButton(makeCalendarIcon(16));
         datePickerButton.setToolTipText("Pick a date");
         datePickerButton.setFocusPainted(false);
-        // Holds the date in MM/dd/yyyy format; empty string when unset
+        datePickerButton.putClientProperty("JButton.buttonType", "roundRect");
+
         final LocalDate[] pickedDate = {null};
         datePickerButton.addActionListener(e -> {
             LocalDate initial = pickedDate[0] != null ? pickedDate[0] : LocalDate.now();
@@ -195,83 +210,99 @@ public class Main {
                 dateField.setText(chosen.format(displayFmt));
             }
         });
+
         JButton addButton = new JButton("Add");
-        JButton removeButton = new JButton("Remove Selected");
+        addButton.putClientProperty("JButton.buttonType", "roundRect");
+        addButton.setFocusPainted(false);
+
+        JButton removeButton = new JButton("Remove");
+        removeButton.putClientProperty("JButton.buttonType", "roundRect");
+        removeButton.setFocusPainted(false);
+
         nameField.setEnabled(false);
         dateField.setEnabled(false);
         datePickerButton.setEnabled(false);
         addButton.setEnabled(false);
         removeButton.setEnabled(false);
 
-        JLabel darkModeLabel = new JLabel(theme.isDark() ? "Light Mode" : "Dark Mode");
-        JToggleButton darkModeToggle = new JToggleButton(theme.isDark() ? "☀" : "☾");
+        JToggleButton darkModeToggle = new JToggleButton(theme.isDark() ? "☀" : "☽");
         darkModeToggle.setSelected(theme.isDark());
         darkModeToggle.setFocusPainted(false);
         darkModeToggle.setToolTipText("Toggle dark/light mode");
+        darkModeToggle.putClientProperty("JButton.buttonType", "roundRect");
 
-        JPanel inputPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        inputPanel.add(new JLabel("Assignment:"));
-        inputPanel.add(nameField);
-        inputPanel.add(new JLabel("Due Date:"));
-        inputPanel.add(dateField);
-        inputPanel.add(datePickerButton);
-        inputPanel.add(addButton);
-        inputPanel.add(removeButton);
+        JPanel inputLeft = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
+        inputLeft.add(new JLabel("Assignment:"));
+        inputLeft.add(nameField);
+        inputLeft.add(new JLabel("Due Date:"));
+        inputLeft.add(dateField);
+        inputLeft.add(datePickerButton);
+        inputLeft.add(addButton);
+        inputLeft.add(removeButton);
 
-        // Spacer to push toggle to the right
-        inputPanel.add(Box.createHorizontalStrut(20));
-        inputPanel.add(darkModeLabel);
-        inputPanel.add(darkModeToggle);
+        JPanel inputRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+        inputRight.add(darkModeToggle);
+
+        JPanel inputPanel = new JPanel(new BorderLayout());
+        inputPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(1, 0, 0, 0,
+                UIManager.getColor("Component.borderColor")),
+            BorderFactory.createEmptyBorder(2, 4, 2, 4)
+        ));
+        inputPanel.add(inputLeft, BorderLayout.CENTER);
+        inputPanel.add(inputRight, BorderLayout.EAST);
 
         // --- West: sidebar ---
-        JList<Subject> subjectList = new JList<>(subjectListModel);
-        subjectList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        subjectList.setFont(subjectList.getFont().deriveFont(13f));
+        JComboBox<Subject> subjectList = new JComboBox<>();
+        for (int i = 0; i < subjectListModel.size(); i++) {
+            subjectList.addItem(subjectListModel.get(i));
+        }
+        subjectListModel.addListDataListener(new javax.swing.event.ListDataListener() {
+            public void intervalAdded(javax.swing.event.ListDataEvent e) {
+                subjectList.removeAllItems();
+                for (int i = 0; i < subjectListModel.size(); i++) subjectList.addItem(subjectListModel.get(i));
+            }
+            public void intervalRemoved(javax.swing.event.ListDataEvent e) {
+                subjectList.removeAllItems();
+                for (int i = 0; i < subjectListModel.size(); i++) subjectList.addItem(subjectListModel.get(i));
+            }
+            public void contentsChanged(javax.swing.event.ListDataEvent e) {
+                subjectList.removeAllItems();
+                for (int i = 0; i < subjectListModel.size(); i++) subjectList.addItem(subjectListModel.get(i));
+            }
+        });
 
-        // Sidebar action buttons are icon-only (monochrome Unicode glyphs so
-        // FlatLaf handles the color automatically). Tooltips carry the
-        // full label for accessibility.
         JButton newClassButton = new JButton("+");
         newClassButton.setToolTipText("New class");
-        JButton renameButton = new JButton("\u270E"); // pencil
+        JButton renameButton = new JButton("✎");
         renameButton.setToolTipText("Rename class");
-        JButton deleteButton = new JButton("\u2715"); // heavy X
+        JButton deleteButton = new JButton("✕");
         deleteButton.setToolTipText("Delete class");
-        // Bump the glyph size so the icons read clearly on smaller buttons.
-        Font iconFont = newClassButton.getFont().deriveFont(18f);
-        newClassButton.setFont(iconFont);
-        renameButton.setFont(iconFont);
-        deleteButton.setFont(iconFont);
+        Font iconFont = newClassButton.getFont().deriveFont(Font.BOLD, 14f);
+        for (JButton b : new JButton[]{newClassButton, renameButton, deleteButton}) {
+            b.setFont(iconFont);
+            b.putClientProperty("JButton.buttonType", "roundRect");
+            b.setFocusPainted(false);
+        }
         renameButton.setEnabled(false);
         deleteButton.setEnabled(false);
 
-        // Horizontal row of equally-sized icon buttons.
-        JPanel sidebarButtonPanel = new JPanel(new GridLayout(1, 3, 4, 0));
+        JPanel sidebarButtonPanel = new JPanel(new GridLayout(1, 3, 6, 0));
+        sidebarButtonPanel.setOpaque(false);
         sidebarButtonPanel.add(newClassButton);
         sidebarButtonPanel.add(renameButton);
         sidebarButtonPanel.add(deleteButton);
 
-        JScrollPane sidebarScroll = new JScrollPane(subjectList);
-
-        JPanel sidebarPanel = new JPanel(new BorderLayout(0, 6));
-        sidebarPanel.setPreferredSize(new Dimension(210, 0));
-        sidebarPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
-        sidebarPanel.add(sidebarScroll, BorderLayout.CENTER);
-        sidebarPanel.add(sidebarButtonPanel, BorderLayout.SOUTH);
 
         // --- Calendar panel ---
-        // Built up here (before the action listeners below) so those listeners
-        // can capture it and call refresh() when assignments change.
         CalendarPanel calendarPanel = new CalendarPanel(subjectListModel);
 
-        // Swap the FlatLaf Look & Feel when the user toggles dark/light mode.
-        // Registered FIRST so it runs before the color-override listener below
-        // (which sets specific component colors on top of the LAF defaults).
+        // Swap LAF on theme toggle.
         theme.addListener(() -> {
             try {
                 UIManager.setLookAndFeel(theme.isDark()
                         ? new FlatDarkLaf() : new FlatLightLaf());
-                FlatLaf.updateUI(); // repaint every open window with the new LAF
+                FlatLaf.updateUI();
             } catch (UnsupportedLookAndFeelException ex) {
                 System.err.println("Could not switch LAF: " + ex.getMessage());
             }
@@ -280,10 +311,19 @@ public class Main {
         // --- Dark mode toggle action ---
         darkModeToggle.addActionListener(e -> theme.toggle());
 
+        theme.addListener(() -> {
+            darkModeToggle.setText(theme.isDark() ? "☀" : "☽");
+            // Rebuild input border so it picks up the new border color.
+            inputPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0,
+                    UIManager.getColor("Component.borderColor")),
+                BorderFactory.createEmptyBorder(2, 4, 2, 4)
+            ));
+        });
+
         // --- Selection listener: swap table model, toggle controls ---
-        subjectList.addListSelectionListener(e -> {
-            if (e.getValueIsAdjusting()) return;
-            Subject selected = subjectList.getSelectedValue();
+        subjectList.addActionListener(e -> {
+            Subject selected = (Subject) subjectList.getSelectedItem();
             boolean subjectSelected = selected != null;
             DefaultTableModel activeModel = subjectSelected ? selected.getTableModel() : emptyTableModel;
             table.setModel(activeModel);
@@ -294,6 +334,12 @@ public class Main {
             table.getColumnModel().getColumn(3).setMinWidth(0);
             table.getColumnModel().getColumn(3).setMaxWidth(0);
             table.getColumnModel().getColumn(3).setWidth(0);
+
+            // Re-apply cell renderer after model swap.
+            DefaultTableCellRenderer r = new DefaultTableCellRenderer();
+            r.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
+            table.getColumnModel().getColumn(0).setCellRenderer(r);
+            table.getColumnModel().getColumn(1).setCellRenderer(r);
 
             notesPanel.setSubject(selected);
             nameField.setEnabled(subjectSelected);
@@ -306,13 +352,11 @@ public class Main {
         });
 
         // --- Assignment actions ---
-        // Each listener calls getSelectedValue() at the moment it fires, rather than
-        // capturing the selection up front. This ensures the selection is always current.
         addButton.addActionListener(e -> {
-            Subject selected = subjectList.getSelectedValue();
+            Subject selected = (Subject) subjectList.getSelectedItem();
             if (selected == null) return;
             String name = nameField.getText().trim();
-            String date = dateField.getText().trim(); // already MM/dd/yyyy or empty
+            String date = dateField.getText().trim();
             if (!name.isEmpty()) {
                 selected.getTableModel().addRow(new Object[]{name, date, false, ""});
                 nameField.setText("");
@@ -324,9 +368,8 @@ public class Main {
             }
         });
 
-        // --- Remove assignment ---
         removeButton.addActionListener(e -> {
-            Subject selected = subjectList.getSelectedValue();
+            Subject selected = (Subject) subjectList.getSelectedItem();
             if (selected == null) return;
             int row = table.getSelectedRow();
             if (row >= 0) {
@@ -356,12 +399,12 @@ public class Main {
             }
             Subject subject = new Subject(name);
             subjectListModel.addElement(subject);
-            subjectList.setSelectedValue(subject, true);
+            subjectList.setSelectedItem(subject);
         });
 
         // --- Rename ---
         renameButton.addActionListener(e -> {
-            Subject selected = subjectList.getSelectedValue();
+            Subject selected = (Subject) subjectList.getSelectedItem();
             if (selected == null) return;
             String input = (String) JOptionPane.showInputDialog(frame, "New name:",
                     "Rename Class", JOptionPane.PLAIN_MESSAGE, null, null, selected.getName());
@@ -383,12 +426,13 @@ public class Main {
             int index = subjectList.getSelectedIndex();
             selected.setName(name);
             subjectListModel.set(index, selected);
-            calendarPanel.refresh(); // tooltip labels include the subject name
+            subjectList.setSelectedItem(selected);
+            calendarPanel.refresh();
         });
 
         // --- Delete ---
         deleteButton.addActionListener(e -> {
-            Subject selected = subjectList.getSelectedValue();
+            Subject selected = (Subject) subjectList.getSelectedItem();
             if (selected == null) return;
             int confirm = JOptionPane.showConfirmDialog(frame,
                     "Delete '" + selected.getName() + "' and all its assignments? This cannot be undone.",
@@ -398,14 +442,13 @@ public class Main {
             subjectListModel.remove(index);
             if (!subjectListModel.isEmpty()) {
                 subjectList.setSelectedIndex(Math.max(0, index - 1));
+                subjectList.setSelectedItem(subjectListModel.get(Math.max(0, index - 1)));
             }
-            calendarPanel.refresh(); // deleted subject's assignments come off the calendar
-            // When the list is empty, removing the last element clears the JList
-            // selection automatically, which fires the ListSelectionListener above.
-            // That listener resets the table and disables all controls.
+            calendarPanel.refresh();
         });
 
         JScrollPane tableScroll = new JScrollPane(table);
+        tableScroll.setBorder(BorderFactory.createEmptyBorder());
 
         JPanel tablePanel = new JPanel(new BorderLayout());
         tablePanel.add(filterBar, BorderLayout.NORTH);
@@ -415,29 +458,70 @@ public class Main {
         assignmentSplit.setResizeWeight(0.75);
         assignmentSplit.setBorder(null);
 
+        // --- App header bar ---
+        JLabel appTitle = new JLabel("Assignment Tracker");
+        appTitle.setFont(appTitle.getFont().deriveFont(Font.BOLD, 15f));
+
+        JPanel headerControls = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        headerControls.setOpaque(false);
+        headerControls.add(new JLabel("Class:"));
+        headerControls.add(subjectList);
+        headerControls.add(newClassButton);
+        headerControls.add(renameButton);
+        headerControls.add(deleteButton);
+
+        JPanel headerBar = new JPanel(new BorderLayout(12, 0));
+        headerBar.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0,
+                UIManager.getColor("Component.borderColor")),
+            BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+        headerBar.add(appTitle, BorderLayout.WEST);
+        headerBar.add(headerControls, BorderLayout.CENTER);
+
+        theme.addListener(() -> {
+            headerBar.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0,
+                    UIManager.getColor("Component.borderColor")),
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)
+            ));
+        });
+
+        // --- Scratchpad tab ---
+        JTextArea scratchArea = new JTextArea(DataStore.loadScratchpad());
+        scratchArea.setLineWrap(true);
+        scratchArea.setWrapStyleWord(true);
+        scratchArea.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+
+        JButton saveScratchButton = new JButton("Save Notes");
+        saveScratchButton.putClientProperty("JButton.buttonType", "roundRect");
+        saveScratchButton.setFocusPainted(false);
+        saveScratchButton.addActionListener(e -> DataStore.saveScratchpad(scratchArea.getText()));
+
+        JPanel scratchSouth = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 6));
+        scratchSouth.add(saveScratchButton);
+
+        JPanel scratchPanel = new JPanel(new BorderLayout());
+        scratchPanel.add(new JScrollPane(scratchArea), BorderLayout.CENTER);
+        scratchPanel.add(scratchSouth, BorderLayout.SOUTH);
+
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("Assignments", assignmentSplit);
         tabs.addTab("Calendar", calendarPanel);
+        tabs.addTab("Notes", scratchPanel);
 
-        // Component colors are handled by the FlatLaf LAF swap registered
-        // above. This listener only updates text that reflects the current
-        // mode (the sun/moon icon and the label next to it).
-        theme.addListener(() -> {
-            darkModeToggle.setText(theme.isDark() ? "☀" : "☾");
-            darkModeLabel.setText(theme.isDark() ? "Light Mode" : "Dark Mode");
-        });
-
-        // Redraw the calendar whenever the user switches to its tab so any
-        // assignments added/removed on the Assignments tab show up.
         tabs.addChangeListener(e -> {
             if (tabs.getSelectedComponent() == calendarPanel) {
                 calendarPanel.refresh();
             }
         });
 
+        JPanel centerPanel = new JPanel(new BorderLayout());
+        centerPanel.add(headerBar, BorderLayout.NORTH);
+        centerPanel.add(tabs, BorderLayout.CENTER);
+
         frame.setLayout(new BorderLayout());
-        frame.add(sidebarPanel, BorderLayout.WEST);
-        frame.add(tabs, BorderLayout.CENTER);
+        frame.add(centerPanel, BorderLayout.CENTER);
         frame.add(inputPanel, BorderLayout.SOUTH);
         frame.setVisible(true);
     }

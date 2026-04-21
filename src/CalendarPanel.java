@@ -21,7 +21,8 @@ import javax.swing.table.DefaultTableModel;
  */
 public class CalendarPanel extends JPanel {
 
-    private static final Color DUE_DOT = new Color(220, 70, 70);
+    private static final Color DUE_DOT = new Color(239, 68, 68);
+    private static final Color ACCENT  = new Color(99, 102, 241);
 
     private YearMonth displayedMonth;
 
@@ -80,7 +81,8 @@ public class CalendarPanel extends JPanel {
         });
 
         monthYearLabel = new JLabel("", SwingConstants.CENTER);
-        monthYearLabel.setFont(monthYearLabel.getFont().deriveFont(Font.BOLD, 16f));
+        monthYearLabel.setFont(monthYearLabel.getFont().deriveFont(Font.BOLD, 17f));
+        monthYearLabel.setForeground(ACCENT);
 
         h.add(prevButton,     BorderLayout.WEST);
         h.add(monthYearLabel, BorderLayout.CENTER);
@@ -90,9 +92,9 @@ public class CalendarPanel extends JPanel {
 
     private JButton makeNavButton(String symbol) {
         JButton btn = new JButton(symbol);
-        // FlatLaf styles this as a borderless toolbar-style button.
-        btn.putClientProperty("JButton.buttonType", "toolBarButton");
+        btn.putClientProperty("JButton.buttonType", "roundRect");
         btn.setFont(btn.getFont().deriveFont(Font.BOLD, 14f));
+        btn.setForeground(ACCENT);
         return btn;
     }
 

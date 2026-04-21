@@ -9,8 +9,28 @@ import java.util.List;
 class DataStore {
     private static Path DATA_FILE = Paths.get(
             System.getProperty("user.home"), ".assignmenttracker_data.json");
+    private static final Path SCRATCHPAD_FILE = Paths.get(
+            System.getProperty("user.home"), ".assignmenttracker_notes.txt");
 
     private DataStore() { }
+
+    static String loadScratchpad() {
+        if (!Files.exists(SCRATCHPAD_FILE)) return "";
+        try {
+            return new String(Files.readAllBytes(SCRATCHPAD_FILE), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            System.err.println("Could not load scratchpad: " + e.getMessage());
+            return "";
+        }
+    }
+
+    static void saveScratchpad(String text) {
+        try {
+            Files.write(SCRATCHPAD_FILE, text.getBytes(StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            System.err.println("Could not save scratchpad: " + e.getMessage());
+        }
+    }
 
     static void setDataFile(Path path) {
         DATA_FILE = path;

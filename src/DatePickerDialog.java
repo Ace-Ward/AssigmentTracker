@@ -76,6 +76,7 @@ public class DatePickerDialog extends JDialog {
 
         monthYearLabel = new JLabel("", SwingConstants.CENTER);
         monthYearLabel.setFont(monthYearLabel.getFont().deriveFont(Font.BOLD, 14f));
+        monthYearLabel.setForeground(ACCENT);
 
         prev.addActionListener(e -> {
             displayedMonth = displayedMonth.minusMonths(1);
@@ -92,10 +93,13 @@ public class DatePickerDialog extends JDialog {
         return header;
     }
 
+    private static final Color ACCENT = new Color(99, 102, 241);
+
     private JButton makeNavBtn(String symbol) {
         JButton btn = new JButton(symbol);
-        btn.putClientProperty("JButton.buttonType", "toolBarButton");
+        btn.putClientProperty("JButton.buttonType", "roundRect");
         btn.setFont(btn.getFont().deriveFont(Font.BOLD, 13f));
+        btn.setForeground(ACCENT);
         return btn;
     }
 

@@ -28,7 +28,7 @@ public class SubjectTest {
         DefaultTableModel model = subject.getTableModel();
         assertNotNull(model);
         assertEquals(0, model.getRowCount());
-        assertEquals(3, model.getColumnCount());
+        assertEquals(4, model.getColumnCount());
     }
 
     @Test
@@ -37,6 +37,7 @@ public class SubjectTest {
         assertEquals("Assignment", model.getColumnName(0));
         assertEquals("Due Date", model.getColumnName(1));
         assertEquals("Done", model.getColumnName(2));
+        assertEquals("Notes", model.getColumnName(3));
     }
 
     @Test
@@ -45,6 +46,7 @@ public class SubjectTest {
         assertEquals(String.class, model.getColumnClass(0));
         assertEquals(String.class, model.getColumnClass(1));
         assertEquals(Boolean.class, model.getColumnClass(2));
+        assertEquals(String.class, model.getColumnClass(3));
     }
 
     // --- setName ---

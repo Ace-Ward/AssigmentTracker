@@ -251,7 +251,7 @@
   <target name="test" depends="test-compile" description="Run JUnit tests">
     <java jar="${junit.jar}" fork="true" failonerror="true">
       <arg value="execute"/>
-      <arg value="--class-path"/><arg value="${build.dir}:${test.build}"/>
+      <arg value="--class-path"/><arg value="${build.dir}${path.separator}${test.build}${path.separator}${flatlaf.jar}${path.separator}${flatlaf-themes.jar}"/>
       <arg value="--scan-class-path=${test.build}"/>
     </java>
   </target>

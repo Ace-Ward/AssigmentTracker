@@ -25,6 +25,11 @@ public class Main {
      * @param args ignored
      */
     public static void main(String[] args) {
+        // Let FlatLaf draw the title bar and window border so they theme with
+        // the rest of the app. Must be set before any JFrame/JDialog is created.
+        JFrame.setDefaultLookAndFeelDecorated(true);
+        JDialog.setDefaultLookAndFeelDecorated(true);
+
         try {
             ThemeManager.get().current().apply();
         } catch (ThemeApplyException e) {

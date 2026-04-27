@@ -93,4 +93,13 @@ public class ThemeManagerTest {
         assertEquals("default-dark", ThemeManager.get().current().id(),
                 "themeId should override the legacy darkMode key");
     }
+
+    @Test
+    void bogusThemeId_fallsBackToDefault_doesNotOverwriteSavedValue() {
+        testNode.put("themeId", "no-such-theme");
+        ThemeManager.setPreferencesNodeForTesting(testNode);
+        assertEquals("default-dark", ThemeManager.get().current().id());
+        assertEquals("no-such-theme", testNode.get("themeId", null),
+                "saved themeId must not be overwritten on fallback");
+    }
 }

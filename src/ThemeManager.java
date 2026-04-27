@@ -26,7 +26,7 @@ public final class ThemeManager {
                     "com.formdev.flatlaf.FlatLightLaf",
                     new Color(99, 102, 241), false),
             new Theme("github-light",    "GitHub Light",
-                    "com.formdev.flatlaf.intellijthemes.FlatGitHubIJTheme",
+                    "com.formdev.flatlaf.intellijthemes.materialthemeuilite.FlatGitHubIJTheme",
                     null, false),
             new Theme("solarized-dark",  "Solarized Dark",
                     "com.formdev.flatlaf.intellijthemes.FlatSolarizedDarkIJTheme",
@@ -43,10 +43,8 @@ public final class ThemeManager {
             new Theme("one-dark",        "One Dark",
                     "com.formdev.flatlaf.intellijthemes.FlatOneDarkIJTheme",
                     null, true),
-            // FlatLaf class name has a typo ("Monocai" instead of "Monokai") —
-            // do not "fix" or the theme will fail to load.
             new Theme("monokai-pro",     "Monokai Pro",
-                    "com.formdev.flatlaf.intellijthemes.FlatMonocaiProIJTheme",
+                    "com.formdev.flatlaf.intellijthemes.FlatMonokaiProIJTheme",
                     null, true)
     ));
 

@@ -50,8 +50,8 @@ public final class ThemeManager {
                     null, true)
     ));
 
-    private static Preferences prefsNode = Preferences.userNodeForPackage(ThemeManager.class);
-    private static ThemeManager instance;
+    private static volatile Preferences prefsNode = Preferences.userNodeForPackage(ThemeManager.class);
+    private static volatile ThemeManager instance;
 
     private Theme current;
     private final List<Runnable> listeners = new ArrayList<>();

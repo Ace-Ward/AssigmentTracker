@@ -360,6 +360,15 @@ public class Main {
             deleteButton.setEnabled(subjectSelected);
         });
 
+        // Combo auto-selects the first item when populated above, but the action
+        // listener wasn't attached yet — re-fire so the table picks up the saved
+        // assignments instead of staying on the empty placeholder model.
+        if (subjectList.getItemCount() > 0) {
+            int idx = Math.max(0, subjectList.getSelectedIndex());
+            subjectList.setSelectedIndex(-1);
+            subjectList.setSelectedIndex(idx);
+        }
+
         // Assignment actions
         addButton.addActionListener(e -> {
             Subject selected = (Subject) subjectList.getSelectedItem();

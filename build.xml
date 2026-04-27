@@ -2,7 +2,7 @@
 <project name="MyAntApp" default="package" basedir=".">
 
   <property name="app.name"    value="AssignmentTracker"/>
-  <property name="app.version" value="1.2.0"/>
+  <property name="app.version" value="1.2.1"/>
   <property name="main.class"  value="Main"/>
 
   <property name="src.dir"     value="src"/>
@@ -17,6 +17,8 @@
   <!-- FlatLaf: modern Look & Feel for Swing. Auto-downloaded like junit.jar. -->
   <property name="flatlaf.jar" value="lib/flatlaf-3.5.4.jar"/>
   <property name="flatlaf.url" value="https://repo1.maven.org/maven2/com/formdev/flatlaf/3.5.4/flatlaf-3.5.4.jar"/>
+  <property name="flatlaf-themes.jar" value="lib/flatlaf-intellij-themes-3.5.4.jar"/>
+  <property name="flatlaf-themes.url" value="https://repo1.maven.org/maven2/com/formdev/flatlaf-intellij-themes/3.5.4/flatlaf-intellij-themes-3.5.4.jar"/>
 
   <!-- Javadoc external API links. Uses the JDK running Ant; no hard-coded Java version. -->
   <condition property="javadoc.api.url" value="https://docs.oracle.com/javase/8/docs/api/">
@@ -95,9 +97,10 @@
     <delete dir="${dist.dir}"/>
   </target>
 
-  <target name="download-flatlaf" description="Download FlatLaf JAR if not present">
+  <target name="download-flatlaf" description="Download FlatLaf and FlatLaf IntelliJ Themes JARs if not present">
     <mkdir dir="lib"/>
     <get src="${flatlaf.url}" dest="${flatlaf.jar}" skipexisting="true"/>
+    <get src="${flatlaf-themes.url}" dest="${flatlaf-themes.jar}" skipexisting="true"/>
   </target>
 
   <target name="compile" depends="preflight, download-flatlaf" description="Compile Java source code">
@@ -108,6 +111,7 @@
            debug="true">
       <classpath>
         <pathelement path="${flatlaf.jar}"/>
+        <pathelement path="${flatlaf-themes.jar}"/>
       </classpath>
     </javac>
   </target>
@@ -122,6 +126,7 @@
         <attribute name="Implementation-Version" value="${app.version}"/>
       </manifest>
       <zipgroupfileset file="${flatlaf.jar}"/>
+      <zipgroupfileset file="${flatlaf-themes.jar}"/>
     </jar>
   </target>
 
@@ -237,6 +242,8 @@
       <classpath>
         <pathelement path="${build.dir}"/>
         <pathelement path="${junit.jar}"/>
+        <pathelement path="${flatlaf.jar}"/>
+        <pathelement path="${flatlaf-themes.jar}"/>
       </classpath>
     </javac>
   </target>
@@ -244,7 +251,7 @@
   <target name="test" depends="test-compile" description="Run JUnit tests">
     <java jar="${junit.jar}" fork="true" failonerror="true">
       <arg value="execute"/>
-      <arg value="--class-path"/><arg value="${build.dir}:${test.build}"/>
+      <arg value="--class-path"/><arg value="${build.dir}${path.separator}${test.build}${path.separator}${flatlaf.jar}${path.separator}${flatlaf-themes.jar}"/>
       <arg value="--scan-class-path=${test.build}"/>
     </java>
   </target>

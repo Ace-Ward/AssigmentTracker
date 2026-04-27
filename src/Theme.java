@@ -69,7 +69,8 @@ public final class Theme {
             UIManager.put("@accentColor", accent);
             UIManager.setLookAndFeel(laf);
             FlatLaf.updateUI();
-        } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException e) {
+        } catch (ReflectiveOperationException | ClassCastException
+               | javax.swing.UnsupportedLookAndFeelException e) {
             throw new ThemeApplyException("Could not apply theme " + id + ": " + e.getMessage(), e);
         }
     }

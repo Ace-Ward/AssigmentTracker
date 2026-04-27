@@ -81,4 +81,14 @@ public class ThemeTest {
         ThemeApplyException ex = assertThrows(ThemeApplyException.class, t::apply);
         assertNotNull(ex.getCause());
     }
+
+    @Test
+    void apply_classExistsButIsNotLookAndFeel_throwsThemeApplyException() {
+        // java.lang.String exists but is not a LookAndFeel — the cast fails.
+        Theme t = new Theme("not-a-laf", "Not LAF", "java.lang.String", null, true);
+        ThemeApplyException ex = assertThrows(ThemeApplyException.class, t::apply);
+        assertNotNull(ex.getCause());
+        assertTrue(ex.getCause() instanceof ClassCastException,
+                "expected ClassCastException cause, got " + ex.getCause().getClass());
+    }
 }

@@ -2,7 +2,7 @@
 <project name="MyAntApp" default="package" basedir=".">
 
   <property name="app.name"    value="AssignmentTracker"/>
-  <property name="app.version" value="1.2.0"/>
+  <property name="app.version" value="1.2.1"/>
   <property name="main.class"  value="Main"/>
 
   <property name="src.dir"     value="src"/>
